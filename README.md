@@ -79,4 +79,4 @@ For help getting started with Flutter, view our online [documentation](https://f
 
 ---
 
-Developed by [Your Name/Your Team](https://github.com/Benardo07) - Feel free to connect and suggest any improvements or features!
+Developed by [Benardo](https://github.com/Benardo07) - Feel free to connect and suggest any improvements or features!
