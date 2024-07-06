@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';  // Make sure to add intl package to your pubspec.yaml
+import 'package:intl/intl.dart';
 import '../services/api_service.dart';
-import '../models/task.dart';  // Ensure this import path matches where your Task model is defined
+import '../models/task.dart';
 
 class TaskCard extends StatelessWidget {
   final Task task;
@@ -15,45 +15,22 @@ class TaskCard extends StatelessWidget {
     required this.onDeleteTask,
   }) : super(key: key);
 
-  void _handleTaskToggle(bool? newValue) async {
-    if (newValue != null) {
-      Task updatedTask = task.copyWith(isDone: newValue);
-      bool success = await ApiService().markTaskDone(updatedTask.id); // Using the API to mark the task
-      if (success) {
-        // Handle successful update
-        // For example, trigger a state update in the parent widget
-      } else {
-        // Handle error, possibly show a Snackbar with an error message
-      }
-    }
-  }
-
-   void _handleDeleteTask() async {
-    bool success = await ApiService().deleteTask(task.id); // Using the API to delete the task
-    if (success) {
-      // Handle successful deletion
-      // For example, trigger a state update in the parent widget
-    } else {
-      // Handle error, possibly show a Snackbar with an error message
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    bool isPastDue = task.dueDate != null && !task.isDone && task.dueDate!.isBefore(DateTime.now());
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
+        side: isPastDue ? BorderSide(color: Colors.red, width: 2) : BorderSide.none,
       ),
       child: ListTile(
-        onTap: () {
-          onTaskChanged(task);
-        },
+        onTap: () => onTaskChanged(task),
         leading: Checkbox(
           value: task.isDone,
           onChanged: (bool? value) {
-            // Create a new Task with updated status or you can modify the state directly if using state management
-            Task updatedTask = task.copyWith(isDone: value);
+            Task updatedTask = task.copyWith();
             onTaskChanged(updatedTask);
           },
           activeColor: Colors.blue,
@@ -74,8 +51,8 @@ class TaskCard extends StatelessWidget {
               style: const TextStyle(fontSize: 14, color: Colors.black54),
             ),
             Text(
-              'Due: ${task.dueDate != null ? DateFormat('yyyy-MM-dd – kk:mm').format(task.dueDate!.toLocal()) : "No due date"}',
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
+              'Due: ${task.dueDate != null ? DateFormat('yyyy-MM-dd hh:mm a').format(task.dueDate!.toLocal()) : "No due date"}${isPastDue ? " - Past Due Time" : ""}',
+              style: TextStyle(fontSize: 12, color: isPastDue ? Colors.red : Colors.grey),
             ),
           ],
         ),
@@ -84,6 +61,8 @@ class TaskCard extends StatelessWidget {
           onPressed: () => onDeleteTask(task.id),
         ),
       ),
+      elevation: isPastDue ? 8 : 1,
+      shadowColor: isPastDue ? Colors.red : Colors.black,
     );
   }
 }

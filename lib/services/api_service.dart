@@ -116,4 +116,31 @@ class ApiService {
     }
   }
 
+  Future<bool> markTaskUnDone(String taskId) async {
+    final uri = _buildUri('/api/trpc/task.markUnDone', {'batch': '1'});
+
+    final body = jsonEncode({
+      '0': {
+        'json': {
+          'id': taskId
+        }
+      }
+    });
+    logger.i('Sending mark undone request for task $taskId to $uri');
+    
+    final response = await http.post(
+      uri,
+      headers: {'Content-Type': 'application/json'},
+      body: body,
+    );
+    logger.i('Response status: ${response.statusCode}');
+    if (response.statusCode == 200) {
+      return true;
+    } else {
+      logger.w('Failed to mark task undone with status code: ${response.statusCode}');
+      logger.w('Response body: ${response.body}');
+      return false;
+    }
+  }
+
 }

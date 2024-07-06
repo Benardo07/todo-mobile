@@ -65,7 +65,7 @@ class Task {
 
     // Only add dueDate to the JSON if it is not null
     if (dueDate != null) {
-      data['dueDate'] = dueDate!.toIso8601String();
+      data['dueDate'] = dueDate!.toUtc().toIso8601String();  // Converts the DateTime to UTC before formatting
     }
 
     return data;

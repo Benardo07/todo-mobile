@@ -5,7 +5,7 @@ import 'models/task.dart';
 import 'widgets/task_card.dart';
 import 'services/api_service.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:another_flushbar/flushbar.dart';
+import 'dart:async'; // Import this for using Timer
 
 void main() {
   runApp(const MyApp());
@@ -38,8 +38,10 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   bool isLoading = false;
+  bool isInitialLoad = true; 
   String _selectedFilter = 'All';
   String _searchQuery = '';
+  Timer? _timer;
 
   List<Task> tasks = [];  // Initialize your tasks list as empty
   List<Task> filteredTasks = [];
@@ -47,6 +49,14 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
     fetchTasks();  // Call fetchTasks during initState
+
+    _timer = Timer.periodic(Duration(seconds: 5), (Timer t) => fetchTasks());
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();  // Clean up the timer when the widget is disposed
+    super.dispose();
   }
 
   void setLoading(bool value) {
@@ -54,35 +64,50 @@ class _MyHomePageState extends State<MyHomePage> {
       isLoading = value;
     });
   }
-  Future<void>  fetchTasks() async {
+  Future<void> fetchTasks() async {
+    if (isInitialLoad) setLoading(true);  // Only show loader on initial load
+
     try {
-      setLoading(true);
-      List<Task> fetchedTasks = await ApiService().fetchTasks();  // Assuming ApiService has a method fetchTasks returning Future<List<Task>>
+      List<Task> fetchedTasks = await ApiService().fetchTasks();
       setState(() {
-        tasks = fetchedTasks; 
-        applyFilters(); 
+        tasks = fetchedTasks;
+        applyFilters();
       });
     } catch (e) {
-      // Handle errors, e.g., show a Snackbar or log to console
-        print('Failed to fetch tasks: $e');
-    }finally{
-      setLoading(false);
+      print('Failed to fetch tasks: $e');
+    } finally {
+      if (isInitialLoad) {
+        setLoading(false);
+        isInitialLoad = false;  // Set to false after first fetch
+      }
     }
   }
 
-  void toggleTaskDone(Task updatedTask) async {
-    setLoading(true);
-    bool success = await ApiService().markTaskDone(updatedTask.id);
-    
+void toggleTaskDone(Task updatedTask) async {
+  setLoading(true);
+  bool success;
+
+  if (updatedTask.isDone) {
+    success = await ApiService().markTaskUnDone(updatedTask.id); // Undo task completion
+    if (success) {
+      showToast("Task marked as undone", backgroundColor: Colors.orange);
+    } else {
+      showToast("Failed to mark task as undone", backgroundColor: Colors.red);
+    }
+  } else {
+    success = await ApiService().markTaskDone(updatedTask.id); // Complete task
     if (success) {
       showToast("Task marked as done", backgroundColor: Colors.green);
-      await fetchTasks();
-    }else{
+    } else {
       showToast("Failed to mark task as done", backgroundColor: Colors.red);
     }
-    setLoading(false);
-    
   }
+
+  if (success) {
+    await fetchTasks(); // Refresh the tasks list to reflect the updated status
+  }
+  setLoading(false);
+}
 
   void deleteTask(String taskId) async {
     setLoading(true);
@@ -243,11 +268,6 @@ Widget _buildFilterButton() {
 }
 
 
-
-  void _filterTasks(String choice) {
-    // Implementation for filtering tasks based on choice
-  }
-
 void _showTask(BuildContext context) {
   TextEditingController titleController = TextEditingController();
   TextEditingController descriptionController = TextEditingController();
@@ -336,7 +356,7 @@ void _showTask(BuildContext context) {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            selectedDueDate != null ? DateFormat('yyyy-MM-dd – kk:mm').format(selectedDueDate!) : 'Select date and time',
+                            selectedDueDate != null ? DateFormat('yyyy-MM-dd hh:mm a').format(selectedDueDate!) : 'Select date and time',
                             style: TextStyle(color: Colors.black54),
                           ),
                           Icon(Icons.calendar_today, color: Colors.grey),
